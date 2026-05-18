@@ -20,7 +20,8 @@ class KissBridge
     /** @var array<string, int> callsign => last_seen_unix_timestamp */
     private array $activeCallsigns = [];
 
-    private int $lastPollAt = 0;
+    private int $lastPollAt   = 0;
+    private int $lastBeaconAt = 0;
 
     /** @var bool Set to false by signal handlers to exit the main loop cleanly. */
     private bool $running = true;
@@ -40,6 +41,8 @@ class KissBridge
     public function run(): void
     {
         $this->logger->info("AX.25 KISS bridge running — mycall={$this->cfg->mycall}");
+
+        $this->sendBeacon(); // beacon on connect
 
         if (function_exists('pcntl_signal')) {
             pcntl_signal(SIGTERM, fn() => $this->running = false);
@@ -61,6 +64,7 @@ class KissBridge
             }
 
             $this->maybePollOutbound();
+            $this->maybeBeacon();
 
             usleep(50_000); // 50 ms — yield CPU without busy-spinning
         }
@@ -190,6 +194,28 @@ class KissBridge
         if ($chunk !== '') {
             $this->sendUiFrame($destCallsign, $chunk);
         }
+    }
+
+    private function maybeBeacon(): void
+    {
+        if (!$this->cfg->beaconEnabled) {
+            return;
+        }
+        if (time() - $this->lastBeaconAt < $this->cfg->beaconIntervalSec) {
+            return;
+        }
+        $this->sendBeacon();
+    }
+
+    private function sendBeacon(): void
+    {
+        if (!$this->cfg->beaconEnabled) {
+            return;
+        }
+        $this->lastBeaconAt = time();
+        $frame = Ax25Frame::buildUi($this->cfg->mycall, $this->cfg->beaconDest, $this->cfg->beaconText);
+        $this->tnc->sendFrame($frame);
+        $this->logger->info("BEACON > {$this->cfg->beaconDest}: {$this->cfg->beaconText}");
     }
 
     private function sendUiFrame(string $destCallsign, string $info): void

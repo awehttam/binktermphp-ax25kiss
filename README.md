@@ -77,6 +77,10 @@ Copy `config.example.json` to `config.json` and fill in the values:
 | `log_level` | `DEBUG`, `INFO`, `WARNING`, or `ERROR` (default: `INFO`). |
 | `log_file` | Path to log file. Set to `""` to disable file logging. |
 | `log_echo` | Set to `true` to also print log output to stdout. |
+| `beacon.enabled` | Send periodic beacon frames (default: `true`). |
+| `beacon.interval_sec` | Seconds between beacons (default: `1800` = 30 minutes). A beacon is also sent immediately on TNC connect. |
+| `beacon.dest` | AX.25 destination callsign for beacon frames (default: `"BEACON"`). |
+| `beacon.text` | Text transmitted in each beacon frame. |
 
 ---
 

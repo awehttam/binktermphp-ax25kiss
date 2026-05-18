@@ -62,6 +62,18 @@ class BridgeConfig
     /** Also echo log output to stdout. */
     public readonly bool $logEcho;
 
+    /** Send a periodic beacon frame. */
+    public readonly bool $beaconEnabled;
+
+    /** Seconds between beacon transmissions (default: 1800 = 30 minutes). */
+    public readonly int $beaconIntervalSec;
+
+    /** AX.25 destination for beacon frames (default: "BEACON"). */
+    public readonly string $beaconDest;
+
+    /** Text transmitted in each beacon frame. */
+    public readonly string $beaconText;
+
     public static function fromFile(string $path): self
     {
         if (!file_exists($path)) {
@@ -101,6 +113,12 @@ class BridgeConfig
         $cfg->logLevel = $data['log_level'] ?? 'INFO';
         $cfg->logFile  = $data['log_file'] ?? 'ax25_kiss_bridge.log';
         $cfg->logEcho  = (bool)($data['log_echo'] ?? false);
+
+        $beacon                  = $data['beacon'] ?? [];
+        $cfg->beaconEnabled      = (bool)($beacon['enabled'] ?? true);
+        $cfg->beaconIntervalSec  = (int)($beacon['interval_sec'] ?? 1800);
+        $cfg->beaconDest         = strtoupper(trim($beacon['dest'] ?? 'BEACON'));
+        $cfg->beaconText         = trim($beacon['text'] ?? "{$cfg->mycall} BinktermPHP PacketBBS - send HELP for commands");
 
         if ($cfg->mycall === '') {
             throw new \RuntimeException("Config: 'mycall' is required");

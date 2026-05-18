@@ -30,5 +30,12 @@
 
     "log_file": "ax25_kiss_bridge.log",
 
-    "log_echo": false
+    "log_echo": false,
+
+    "beacon": {
+        "enabled": true,
+        "interval_sec": 1800,
+        "dest": "BEACON",
+        "text": "N0BBS-1 BinktermPHP PacketBBS - send HELP for commands"
+    }
 }
