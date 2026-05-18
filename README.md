@@ -2,6 +2,9 @@
 
 > **This adapter is experimental.** Features may be incomplete and behaviour may change between releases without notice. Please [report issues to GitHub](https://github.com/awehttam/binkterm-php/issues).
 
+> [!CAUTION]
+> **All traffic on AX.25/KISS links is transmitted in plain text — every login command, TOTP code, and BBS response is visible to any station on the same frequency.** AX.25 source callsigns can be trivially spoofed, which means an active session can be hijacked by any station on-frequency. Read the [Security](#security) section before deploying on a shared or public frequency.
+
 A standalone bridge daemon that connects a KISS TNC to a [BinktermPHP](https://lovelybits.org/binktermphp) BBS, giving amateur packet radio stations access to the PacketBBS over AX.25.
 
 ```
@@ -165,7 +168,8 @@ Common commands:
 
 ## Security
 
-> **Warning:** On unencrypted radio links such as AX.25/KISS, all traffic is transmitted in plain text. Any station on the same frequency can read every packet, including login commands and BBS responses.
+> [!CAUTION]
+> On unencrypted radio links such as AX.25/KISS, all traffic is transmitted in plain text. Any station on the same frequency can read every packet, including login commands and BBS responses.
 
 ### Session hijacking after login
 
