@@ -146,7 +146,7 @@ The bridge will connect to `localhost:8001` by default.
 
 ## BBS commands
 
-Operators send commands as plain text in AX.25 UI frames addressed to the BBS callsign. The full command set is documented in the BinktermPHP admin panel under **Packet BBS → Help**.
+Operators send commands as plain text in AX.25 UI frames addressed to the BBS callsign. The full command set is documented in the BinktermPHP User Guide under **User Settings**.
 
 Common commands:
 
