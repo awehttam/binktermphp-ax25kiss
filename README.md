@@ -163,6 +163,32 @@ Common commands:
 
 ---
 
+## Security
+
+> **Warning:** On unencrypted radio links such as AX.25/KISS, all traffic is transmitted in plain text. Any station on the same frequency can read every packet, including login commands and BBS responses.
+
+### Session hijacking after login
+
+PacketBBS sessions are keyed by the sender's AX.25 source callsign. AX.25 provides no cryptographic proof that the source callsign in a frame matches the station that actually transmitted it. Any operator with a radio and appropriate software can set their source callsign to any value and transmit on the same frequency.
+
+This creates a session-hijacking exposure:
+
+1. A monitoring station observes a frame containing `LOGIN alice 123456` (or observes that a callsign has an active session from the `WHO` response).
+2. The monitoring station transmits a frame with that source callsign addressed to the bridge.
+3. The bridge receives the spoofed frame, looks up the active session, and executes the command as the logged-in user.
+
+The TOTP code itself expires after 30 seconds, so replaying a captured login is a narrow window. However, **commands sent after login do not require a fresh code** — the session persists for up to `session_timeout_minutes`. Any spoofed frame with the correct source callsign can issue BBS commands for the duration of that session.
+
+### Mitigations
+
+- Keep `session_timeout_minutes` short (the BBS default of 15 minutes is a reasonable balance; consider 5–10 minutes on high-risk links).
+- Avoid performing sensitive operations by radio on shared or high-traffic frequencies where monitoring is likely.
+- Treat the PacketBBS session as a shared-secret login, not a secure channel. The TOTP authenticator verifies the user at login time; it does not protect individual commands issued within the same session.
+
+This is an inherent limitation of the AX.25 protocol and is not specific to BinktermPHP. Operators should understand their local RF environment and assess the likelihood of active spoofing before using authenticated PacketBBS features on the air.
+
+---
+
 ## Licence
 
 BSD 3-Clause — see [LICENSE](LICENSE).
