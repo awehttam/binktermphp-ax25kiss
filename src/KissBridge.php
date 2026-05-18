@@ -5,17 +5,20 @@ namespace BinktermPhpAx25Kiss;
 /**
  * AX.25/KISS to BinktermPHP PacketBBS bridge.
  *
- * Listens for UI frames addressed to the BBS callsign, forwards the text
- * payload to the PacketBBS HTTP API, and transmits the response back over air.
+ * Handles both UI (connectionless) frames and connected-mode (SABM/UA/I-frame)
+ * sessions. UI frames are forwarded to the PacketBBS HTTP API and replied to
+ * with UI frames. Connected-mode sessions use the AX.25 L2 state machine
+ * managed by Ax25ConnectionManager and deliver replies as I-frames.
  *
  * Each AX.25 source callsign is treated as a distinct PacketBBS node_id. The
  * bridge itself authenticates to the API using a single bearer token.
  */
 class KissBridge
 {
-    private KissTnc      $tnc;
-    private BridgeConfig $cfg;
-    private Logger       $logger;
+    private KissTnc              $tnc;
+    private BridgeConfig         $cfg;
+    private Logger               $logger;
+    private Ax25ConnectionManager $connMgr;
 
     /** @var array<string, int> callsign => last_seen_unix_timestamp */
     private array $activeCallsigns = [];
@@ -28,9 +31,16 @@ class KissBridge
 
     public function __construct(KissTnc $tnc, BridgeConfig $cfg, Logger $logger)
     {
-        $this->tnc    = $tnc;
-        $this->cfg    = $cfg;
-        $this->logger = $logger;
+        $this->tnc     = $tnc;
+        $this->cfg     = $cfg;
+        $this->logger  = $logger;
+        $this->connMgr = new Ax25ConnectionManager(
+            $cfg->mycall,
+            $tnc,
+            $logger,
+            $cfg->maxFrameInfo,
+            fn(string $nodeId, string $cmd) => $this->sendCommand($nodeId, $cmd)
+        );
     }
 
     /**
@@ -63,6 +73,7 @@ class KissBridge
                 $this->handleRawFrame($raw);
             }
 
+            $this->connMgr->tick();
             $this->maybePollOutbound();
             $this->maybeBeacon();
 
@@ -86,6 +97,13 @@ class KissBridge
             return;
         }
 
+        if ($frame->type !== Ax25Frame::TYPE_UI) {
+            // Connected-mode frame — delegate to the L2 session manager.
+            $this->connMgr->handleFrame($frame);
+            return;
+        }
+
+        // UI (connectionless) frame — legacy path.
         $callsign = strtoupper($frame->src);
         $text     = trim($frame->info);
 
@@ -93,7 +111,7 @@ class KissBridge
             return;
         }
 
-        $this->logger->info("RX {$callsign} > {$this->cfg->mycall}: " . substr($text, 0, 80));
+        $this->logger->info("RX UI {$callsign} > {$this->cfg->mycall}: " . substr($text, 0, 80));
         $this->activeCallsigns[$callsign] = time();
 
         $response = $this->sendCommand($callsign, $text);
@@ -134,7 +152,12 @@ class KissBridge
             }
         }
 
-        foreach (array_keys($this->activeCallsigns) as $callsign) {
+        // Poll for all UI-mode and connected-mode stations.
+        $targets = array_unique(array_merge(
+            array_keys($this->activeCallsigns),
+            $this->connMgr->connectedCallsigns()
+        ));
+        foreach ($targets as $callsign) {
             $this->pollOutboundFor($callsign);
         }
     }
@@ -159,7 +182,11 @@ class KissBridge
             $text = $msg['payload'] ?? '';
             if ($text !== '') {
                 $this->logger->info("OUTBOUND for {$callsign}: " . substr($text, 0, 60));
-                $this->transmitReply($callsign, $text);
+                if ($this->connMgr->hasConnection($callsign)) {
+                    $this->connMgr->sendData($callsign, $text);
+                } else {
+                    $this->transmitReply($callsign, $text);
+                }
             }
         }
     }
