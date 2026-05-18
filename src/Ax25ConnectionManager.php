@@ -78,7 +78,7 @@ class Ax25ConnectionManager
         if ($info !== null) {
             $text = trim($info);
             if ($text !== '') {
-                $this->logger->info("CONN RX {$remote}: " . substr($text, 0, 80));
+                $this->logger->debug("CONN RX {$remote}: " . substr($text, 0, 80));
                 $response = ($this->commandHandler)($remote, $text);
                 if ($response !== null && $response !== '') {
                     $this->deliverToConnection($conn, $response);

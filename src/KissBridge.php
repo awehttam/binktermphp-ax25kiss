@@ -111,7 +111,7 @@ class KissBridge
             return;
         }
 
-        $this->logger->info("RX UI {$callsign} > {$this->cfg->mycall}: " . substr($text, 0, 80));
+        $this->logger->debug("RX UI {$callsign} > {$this->cfg->mycall}: " . substr($text, 0, 80));
         $this->activeCallsigns[$callsign] = time();
 
         $response = $this->sendCommand($callsign, $text);
@@ -181,7 +181,7 @@ class KissBridge
         foreach ($data['messages'] as $msg) {
             $text = $msg['payload'] ?? '';
             if ($text !== '') {
-                $this->logger->info("OUTBOUND for {$callsign}: " . substr($text, 0, 60));
+                $this->logger->debug("OUTBOUND for {$callsign}: " . substr($text, 0, 60));
                 if ($this->connMgr->hasConnection($callsign)) {
                     $this->connMgr->sendData($callsign, $text);
                 } else {
