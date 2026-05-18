@@ -19,6 +19,7 @@
  *   --daemon          Detach from terminal and run as a background process
  *   --pid-file=FILE   Write daemon PID to FILE (default: ax25_kiss_bridge.pid)
  *   --echo-log        Print log output to stdout even when running as daemon
+ *   --debug           Force log level to DEBUG (overrides config file log_level)
  *   --help            Show this help message and exit
  *
  * See config.example.json for all configuration options.
@@ -70,6 +71,7 @@ Options:
   --daemon          Detach from terminal and run as a background process
   --pid-file=FILE   Write daemon PID to FILE (default: ax25_kiss_bridge.pid)
   --echo-log        Print log output to stdout
+  --debug           Force log level to DEBUG (overrides config file log_level)
   --help            Show this help message
 
 See config.example.json for all configuration options.
@@ -120,10 +122,11 @@ if (isset($args['help'])) {
     exit(0);
 }
 
-$configPath = $args['config'] ?? 'config.json';
-$pidFile    = $args['pid-file'] ?? 'ax25_kiss_bridge.pid';
-$echoLog    = isset($args['echo-log']);
-$daemon     = isset($args['daemon']);
+$configPath  = $args['config'] ?? 'config.json';
+$pidFile     = $args['pid-file'] ?? 'ax25_kiss_bridge.pid';
+$echoLog     = isset($args['echo-log']);
+$daemon      = isset($args['daemon']);
+$forceDebug  = isset($args['debug']);
 
 // Load config before daemonizing so errors are visible on the terminal.
 try {
@@ -139,8 +142,12 @@ if ($daemon) {
 
 writePidFile($pidFile);
 
-$logLevel = Logger::levelFromString($cfg->logLevel);
+$logLevel = $forceDebug ? Logger::LEVEL_DEBUG : Logger::levelFromString($cfg->logLevel);
 $logger   = new Logger($cfg->logFile, $logLevel, $echoLog || !$daemon);
+
+if ($forceDebug) {
+    $logger->debug('Log level forced to DEBUG by --debug flag');
+}
 
 $logger->info('Starting BinktermPHP AX.25 KISS bridge');
 $logger->info("Config: mycall={$cfg->mycall} bbs={$cfg->bbsUrl}");
