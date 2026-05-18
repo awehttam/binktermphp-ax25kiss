@@ -1,0 +1,18 @@
+{
+    "name": "awehttam/binktermphp-ax25kiss",
+    "description": "AX.25 KISS bridge adapter for BinktermPHP PacketBBS",
+    "type": "project",
+    "license": "BSD-3-Clause",
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "BinktermPhpAx25Kiss\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
